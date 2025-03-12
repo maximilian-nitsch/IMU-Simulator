@@ -12,6 +12,10 @@ jobs:
     container:
       image: ros:humble # ROS 2 Humble Docker Image
 
+    defaults:
+      run:
+        shell: bash # Ensure all commands run in Bash
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -19,34 +23,57 @@ jobs:
       - name: Install Dependencies
         run: |
           apt update && apt install -y \
-          python3-colcon-common-extensions \
-          python3-rosdep \
-          python3-pip \
-          clang-format \
-          doxygen \
-          graphviz \
-          libeigen3-dev \
-          ros-humble-eigen3-cmake-module \
-          ros-humble-rclcpp \
-          ros-humble-std-msgs \
-          ros-humble-sensor-msgs \
-          ros-humble-nav-msgs \
-          ros-humble-geometry-msgs \
-          ros-humble-diagnostic-msgs \
-          ros-humble-tf2-ros \
-          ros-humble-ros2launch \
-          ros-humble-ament-cmake \
-          ros-humble-ament-cmake-gtest \
-          ros-humble-ament-lint-auto \
-          ros-humble-ament-lint-common
+            python3-colcon-common-extensions \
+            python3-rosdep \
+            python3-pip \
+            clang-format \
+            doxygen \
+            graphviz \
+            libeigen3-dev \
+            ros-humble-eigen3-cmake-module \
+            ros-humble-rclcpp \
+            ros-humble-std-msgs \
+            ros-humble-sensor-msgs \
+            ros-humble-nav-msgs \
+            ros-humble-geometry-msgs \
+            ros-humble-diagnostic-msgs \
+            ros-humble-tf2-ros \
+            ros-humble-ros2launch \
+            ros-humble-ament-cmake \
+            ros-humble-ament-cmake-gtest \
+            ros-humble-ament-lint-auto \
+            ros-humble-ament-lint-common
 
-      - name: Setup ROS 2 Environment
+      - name: Setup ROS 2 Environment and Dependencies
         run: |
-          source /opt/ros/humble/setup.bash
-          sudo rosdep init || true
-          rosdep update
-          rosdep install --from-paths src --ignore-src -r -y
+          bash -c "source /opt/ros/humble/setup.bash && \
+          sudo rosdep init || true && \
+          rosdep update && \
+          rosdep install --from-paths src --ignore-src -r -y"
 
       - name: Build with colcon
         run: |
-          source /opt
+          bash -c "source /opt/ros/humble/setup.bash && colcon build --event-handlers console_cohesion+"
+
+      - name: Run Tests
+        run: |
+          bash -c "source /opt/ros/humble/setup.bash && colcon test --event-handlers console_cohesion+"
+          bash -c "source /opt/ros/humble/setup.bash && colcon test-result --all"
+
+      - name: Run cpplint
+        run: |
+          bash -c "source /opt/ros/humble/setup.bash && colcon test --packages-select my_package --ctest-args -R cpplint"
+
+      - name: Run CppCheck
+        run: |
+          bash -c "source /opt/ros/humble/setup.bash && colcon test --packages-select my_package --ctest-args -R cppcheck"
+
+      - name: Generate Doxygen Documentation
+        run: |
+          bash -c "cd src/my_package && doxygen Doxyfile"
+
+      - name: Upload Doxygen Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: doxygen-docs
+          path: src/my_package/docs/
