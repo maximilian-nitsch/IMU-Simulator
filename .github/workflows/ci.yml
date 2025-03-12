@@ -83,6 +83,7 @@ jobs:
           source /opt/ros/humble/setup.bash
           colcon test --packages-select imu_simulator_package
           ament_cppcheck src/imu_simulator_package
+          cat /__w/IMU-Simulator/IMU-Simulator/build/imu_simulator_package/Testing/Temporary/LastTest.log  # Show the test log
 
       - name: Generate Doxygen Documentation
         run: |
