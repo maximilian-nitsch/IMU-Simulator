@@ -53,6 +53,12 @@ jobs:
           rosdep update
           rosdep install --from-paths src --ignore-src -r -y
 
+      - name: Run ament_cmake_lint (only source files)
+        run: |
+          source /opt/ros/humble/setup.bash
+          # Find all CMakeLists.txt and CMake files in the src directory (excluding build/)
+          find src -name "CMakeLists.txt" -o -name "*.cmake" | xargs ament_lint_cmake
+
       - name: Build with colcon
         run: |
           source /opt/ros/humble/setup.bash
