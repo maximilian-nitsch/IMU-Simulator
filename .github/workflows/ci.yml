@@ -53,17 +53,11 @@ jobs:
           rosdep update
           rosdep install --from-paths src --ignore-src -r -y
 
-      # The ament_cmake_lint step is removed or kept commented to disable it
-
-      # Linting CMake files to catch issues
-      - name: Run CMake linting (Fix issues if possible)
+      - name: Run ament_cmake_lint (only source files)
         run: |
-          # If you want to automatically format your CMake files, you could run clang-format or a similar tool.
-          # Example command: clang-format -i **/*.cmake
-          sudo apt install -y clang-format
-          find . -iname "*.cmake" -exec clang-format -i {} \;
-          # Run lint command with more verbosity if needed
-          /opt/ros/humble/bin/ament_lint_cmake --xunit-file ${{ github.workspace }}/build/test_results/lint_cmake.xunit.xml
+          source /opt/ros/humble/setup.bash
+          # Find all CMakeLists.txt and CMake files in the src directory (excluding build/)
+          find src -name "CMakeLists.txt" -o -name "*.cmake" | xargs ament_lint_cmake
 
       - name: Build with colcon
         run: |
@@ -79,22 +73,22 @@ jobs:
       - name: Run cpplint (Code Style Check)
         run: |
           source /opt/ros/humble/setup.bash
-          colcon test --packages-select my_package
-          ament_cpplint --recursive src/my_package
+          colcon test --packages-select imu_simulator_package
+          ament_cpplint --recursive src/imu_simulator_package
 
       - name: Run CppCheck (Static Analysis)
         run: |
           source /opt/ros/humble/setup.bash
-          colcon test --packages-select my_package
-          ament_cppcheck --recursive src/my_package
+          colcon test --packages-select imu_simulator_package
+          ament_cppcheck --recursive src/imu_simulator_package
 
       - name: Generate Doxygen Documentation
         run: |
-          cd src/my_package
+          cd src/imu_simulator_package
           doxygen Doxyfile
 
       - name: Upload Doxygen Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: doxygen-docs
-          path: src/my_package/docs/html/ # Ensure correct documentation folder
+          path: src/imu_simulator_package/docs/html/ # Ensure correct documentation folder
