@@ -42,38 +42,47 @@ jobs:
             ros-humble-ament-cmake \
             ros-humble-ament-cmake-gtest \
             ros-humble-ament-lint-auto \
-            ros-humble-ament-lint-common
+            ros-humble-ament-lint-common \
+            ros-humble-ament-cmake-cpplint \
+            ros-humble-ament-cmake-cppcheck
 
       - name: Setup ROS 2 Environment and Dependencies
         run: |
-          bash -c "source /opt/ros/humble/setup.bash && \
-          sudo rosdep init || true && \
-          rosdep update && \
-          rosdep install --from-paths src --ignore-src -r -y"
+          source /opt/ros/humble/setup.bash
+          sudo rosdep init || true  # Prevent failure if already initialized
+          rosdep update
+          rosdep install --from-paths src --ignore-src -r -y
 
       - name: Build with colcon
         run: |
-          bash -c "source /opt/ros/humble/setup.bash && colcon build --event-handlers console_cohesion+"
+          source /opt/ros/humble/setup.bash
+          colcon build --event-handlers console_cohesion+
 
       - name: Run Tests
         run: |
-          bash -c "source /opt/ros/humble/setup.bash && colcon test --event-handlers console_cohesion+"
-          bash -c "source /opt/ros/humble/setup.bash && colcon test-result --all"
+          source /opt/ros/humble/setup.bash
+          colcon test --event-handlers console_cohesion+
+          colcon test-result --all
 
-      - name: Run cpplint
+      - name: Run cpplint (Code Style Check)
         run: |
-          bash -c "source /opt/ros/humble/setup.bash && colcon test --packages-select my_package --ctest-args -R cpplint"
+          source /opt/ros/humble/setup.bash
+          colcon test --packages-select my_package
+          ament_cpplint --recursive src/my_package
 
-      - name: Run CppCheck
+      - name: Run CppCheck (Static Analysis)
         run: |
-          bash -c "source /opt/ros/humble/setup.bash && colcon test --packages-select my_package --ctest-args -R cppcheck"
+          source /opt/ros/humble/setup.bash
+          colcon test --packages-select my_package
+          ament_cppcheck --recursive src/my_package
 
       - name: Generate Doxygen Documentation
         run: |
-          bash -c "cd src/my_package && doxygen Doxyfile"
+          cd src/my_package
+          doxygen Doxyfile
 
       - name: Upload Doxygen Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: doxygen-docs
-          path: src/my_package/docs/
+          path: src/my_package/docs/html/ # Ensure correct documentation folder
