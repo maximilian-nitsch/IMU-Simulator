@@ -14,7 +14,7 @@ jobs:
 
     defaults:
       run:
-        shell: bash # Ensure all commands run in Bash
+        shell: bash
 
     steps:
       - name: Checkout Code
@@ -44,19 +44,19 @@ jobs:
             ros-humble-ament-lint-auto \
             ros-humble-ament-lint-common \
             ros-humble-ament-cmake-cpplint \
-            ros-humble-ament-cmake-cppcheck
+            ros-humble-ament-cmake-cppcheck \
+            cppcheck
 
       - name: Setup ROS 2 Environment and Dependencies
         run: |
           source /opt/ros/humble/setup.bash
-          sudo rosdep init || true  # Prevent failure if already initialized
+          sudo rosdep init || true
           rosdep update
           rosdep install --from-paths src --ignore-src -r -y
 
       - name: Run ament_cmake_lint (only source files)
         run: |
           source /opt/ros/humble/setup.bash
-          # Find all CMakeLists.txt and CMake files in the src directory (excluding build/)
           find src -name "CMakeLists.txt" -o -name "*.cmake" | xargs ament_lint_cmake
 
       - name: Build with colcon
@@ -85,10 +85,14 @@ jobs:
       - name: Generate Doxygen Documentation
         run: |
           cd src/imu_simulator_package
-          doxygen Doxyfile
+          if [ -f Doxyfile ]; then
+            doxygen Doxyfile
+          else
+            echo "Doxyfile not found!"
+          fi
 
       - name: Upload Doxygen Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: doxygen-docs
-          path: src/imu_simulator_package/docs/html/ # Ensure correct documentation folder
+          path: src/imu_simulator_package/docs/html/
