@@ -87,11 +87,17 @@ jobs:
 
       - name: Generate Doxygen Documentation
         run: |
-          cd src/imu_simulator_package
-          if [ -f Doxyfile ]; then
-            doxygen Doxyfile
+          # List contents to confirm we're in the right place
+          ls -alh
+          if [ -d src/imu_simulator_package ]; then
+            cd src/imu_simulator_package
+            if [ -f Doxyfile ]; then
+              doxygen Doxyfile
+            else
+              echo "Doxyfile not found!"
+            fi
           else
-            echo "Doxyfile not found!"
+            echo "imu_simulator_package directory not found!"
           fi
 
       - name: Deploy Documentation to GitHub Pages
