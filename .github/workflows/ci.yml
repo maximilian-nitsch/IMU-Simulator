@@ -82,7 +82,7 @@ jobs:
         run: |
           source /opt/ros/humble/setup.bash
           colcon test --packages-select imu_simulator_package
-          ament_cppcheck --recursive src/imu_simulator_package
+          ament_cppcheck src/imu_simulator_package
 
       - name: Generate Doxygen Documentation
         run: |
