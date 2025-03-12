@@ -55,6 +55,16 @@ jobs:
 
       # The ament_cmake_lint step is removed or kept commented to disable it
 
+      # Linting CMake files to catch issues
+      - name: Run CMake linting (Fix issues if possible)
+        run: |
+          # If you want to automatically format your CMake files, you could run clang-format or a similar tool.
+          # Example command: clang-format -i **/*.cmake
+          sudo apt install -y clang-format
+          find . -iname "*.cmake" -exec clang-format -i {} \;
+          # Run lint command with more verbosity if needed
+          /opt/ros/humble/bin/ament_lint_cmake --xunit-file ${{ github.workspace }}/build/test_results/lint_cmake.xunit.xml
+
       - name: Build with colcon
         run: |
           source /opt/ros/humble/setup.bash
