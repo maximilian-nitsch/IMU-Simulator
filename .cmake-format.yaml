@@ -1,0 +1,6 @@
+disable:
+  - whitespace/mismatch
+  - whitespace/extra
+  - whitespace/eol
+  - whitespace/indent
+  - whitespace/newline
