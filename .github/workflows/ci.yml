@@ -75,22 +75,22 @@ jobs:
         run: |
           source /opt/ros/humble/setup.bash
           colcon test --packages-select imu_simulator_package
-          ament_cpplint src/imu_simulator_package
+          ament_cpplint src
         continue-on-error: true
 
       - name: Run CppCheck (Static Analysis)
         run: |
           source /opt/ros/humble/setup.bash
           colcon test --packages-select imu_simulator_package
-          ament_cppcheck src/imu_simulator_package
+          ament_cppcheck src
         continue-on-error: true
 
       - name: Generate Doxygen Documentation
         run: |
           # List contents to confirm we're in the right place
           ls -alh
-          if [ -d src/imu_simulator_package ]; then
-            cd src/imu_simulator_package
+          if [ -d src ]; then
+            cd src
             if [ -f Doxyfile ]; then
               doxygen Doxyfile
             else
