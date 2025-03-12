@@ -1,0 +1,52 @@
+name: ROS 2 CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    container:
+      image: ros:humble # ROS 2 Humble Docker Image
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          apt update && apt install -y \
+          python3-colcon-common-extensions \
+          python3-rosdep \
+          python3-pip \
+          clang-format \
+          doxygen \
+          graphviz \
+          libeigen3-dev \
+          ros-humble-eigen3-cmake-module \
+          ros-humble-rclcpp \
+          ros-humble-std-msgs \
+          ros-humble-sensor-msgs \
+          ros-humble-nav-msgs \
+          ros-humble-geometry-msgs \
+          ros-humble-diagnostic-msgs \
+          ros-humble-tf2-ros \
+          ros-humble-ros2launch \
+          ros-humble-ament-cmake \
+          ros-humble-ament-cmake-gtest \
+          ros-humble-ament-lint-auto \
+          ros-humble-ament-lint-common
+
+      - name: Setup ROS 2 Environment
+        run: |
+          source /opt/ros/humble/setup.bash
+          sudo rosdep init || true
+          rosdep update
+          rosdep install --from-paths src --ignore-src -r -y
+
+      - name: Build with colcon
+        run: |
+          source /opt
