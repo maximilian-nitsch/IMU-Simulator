@@ -88,24 +88,25 @@ jobs:
       - name: Generate Doxygen Documentation
         run: |
           # List contents to confirm we're in the right place
+          mkdir -p ./src/imu_simulator_package/docs/
           ls -alh
-          if [ -d src ]; then
-            cd src
+          if [ -d .doxygen ]; then
+            cd .doxygen
             if [ -f Doxyfile ]; then
               doxygen Doxyfile
             else
               echo "Doxyfile not found!"
             fi
           else
-            echo "imu_simulator_package directory not found!"
+            echo ".doxygen directory not found in main branch!"
           fi
 
       - name: Deploy Documentation to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          source_dir: src/imu_simulator_package/docs/html
-          target_branch: gh-pages
+          publish_dir: src/imu_simulator_package/docs/html
+          publish_branch: gh-pages
 
       - name: Upload Doxygen Artifacts
         uses: actions/upload-artifact@v4
