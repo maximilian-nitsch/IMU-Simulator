@@ -16,6 +16,9 @@ jobs:
       run:
         shell: bash
 
+    env: 
+      AMENT_CPPCHECK_ALLOW_SLOW_VERSIONS: 1
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
