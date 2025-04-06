@@ -79,6 +79,8 @@ jobs:
         continue-on-error: true
 
       - name: Run CppCheck (Static Analysis)
+        env: 
+          AMENT_CPPCHECK_ALLOW_SLOW_VERSIONS: 1
         run: |
           source /opt/ros/humble/setup.bash
           colcon test --packages-select imu_simulator_package
