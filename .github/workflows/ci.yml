@@ -50,7 +50,7 @@ jobs:
       - name: Setup ROS 2 Environment and Dependencies
         run: |
           source /opt/ros/humble/setup.bash
-          sudo rosdep init || true
+          [ -f /etc/ros/rosdep/sources.list.d/20-default.list ] || sudo rosdep init || true
           rosdep update
           rosdep install --from-paths src --ignore-src -r -y
 
