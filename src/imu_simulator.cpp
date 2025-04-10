@@ -1,9 +1,3 @@
-/*@license BSD-3 https://opensource.org/licenses/BSD-3-Clause
-Copyright (c) 2024, Institute of Automatic Control - RWTH Aachen University
-Maximilian Nitsch (m.nitsch@irt.rwth-aachen.de)
-All rights reserved.
-*/
-
 #include "imu_simulator.h"
 
 #include <iomanip>
@@ -821,7 +815,7 @@ Eigen::Vector3d ImuSimulator::calcScaleFactorModel(
  * function is meant to apply only to the uncompensated part.
  *
  * @param measurement Vector of IMU measurements (acceleration or angular velocity).
-* @param nonOrthogonality Six angles between each pair of the axes (rad).
+ * @param nonOrthogonality Six angles between each pair of the axes (rad).
  * @param misAlignment Three Euler angles representing the rigid-body rotation (rad).
  * 
  * @return Measurement vector with misalignment and orthogonality error.

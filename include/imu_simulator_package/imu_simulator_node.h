@@ -4,13 +4,17 @@ Maximilian Nitsch (m.nitsch@irt.rwth-aachen.de)
 All rights reserved.
 */
 
-#include "rclcpp/rclcpp.hpp"
+#pragma once
 
-#include "diagnostic_msgs/msg/diagnostic_array.hpp"
-#include "geometry_msgs/msg/accel_stamped.hpp"
-#include "nav_msgs/msg/odometry.hpp"
-#include "sensor_msgs/msg/imu.hpp"
-#include "tf2_ros/static_transform_broadcaster.h"
+#include <rclcpp/rclcpp.hpp>
+
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <diagnostic_msgs/msg/diagnostic_array.hpp>
+#include <geometry_msgs/msg/accel_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+
+#include "nanoauv_sensor_driver_interfaces/msg/inertial_measurement_unit.hpp"
 
 #include "imu_simulator.h"
 
@@ -40,24 +44,29 @@ class ImuSimulatorNode : public rclcpp::Node {
   // Last acceleration timestamp
   rclcpp::Time lastAccelTimestamp_;
 
-  // IMU message publisher
-  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr pImuPublisher_;
+  // IMU custom message publisher
+  rclcpp::Publisher<
+      nanoauv_sensor_driver_interfaces::msg::InertialMeasurementUnit>::SharedPtr
+      pCustomImuPublisher_;
 
-  // IMU visualization publisher
-  rclcpp::Publisher<geometry_msgs::msg::AccelStamped>::SharedPtr
-      pImuAccelStampedPublisher_;
+  //   // IMU message publisher
+  //   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr pImuPublisher_;
 
-  // Diagnostic message publisher
-  rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr
-      pDiagnosticPublisher_;
+  //   // IMU visualization publisher
+  //   rclcpp::Publisher<geometry_msgs::msg::AccelStamped>::SharedPtr
+  //       pImuAccelStampedPublisher_;
 
-  // True acceleration publisher
-  rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr
-      pTrueAccelerationPublisher_;
+  //   // Diagnostic message publisher
+  //   rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr
+  //       pDiagnosticPublisher_;
 
-  // True angular velocity publisher
-  rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr
-      pTrueAngularRatePublisher_;
+  //   // True acceleration publisher
+  //   rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr
+  //       pTrueAccelerationPublisher_;
+
+  //   // True angular velocity publisher
+  //   rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr
+  //       pTrueAngularRatePublisher_;
 
   // Vehicle odometry subscriber
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr pOdometrySubscriber_;
@@ -88,8 +97,7 @@ class ImuSimulatorNode : public rclcpp::Node {
   bool first_acceleration_received_;
   bool acceleration_timeout_;
 
-  // Flag to indicate if acceleration should be calculated from odometry
-  // velocity
+  // Flag to indicate if acceleration should be calculated from odometry velocity
   bool calc_acc_from_odom_vel_;
 
   // Linear velocity
@@ -124,6 +132,9 @@ class ImuSimulatorNode : public rclcpp::Node {
 
   // Helper functions
   Eigen::VectorXd doubleVectorToEigenVector(const std::vector<double>& vec);
+
+  // Namespace string of node
+  std::string node_namespace_;
 };
 
 }  // namespace imu_simulator

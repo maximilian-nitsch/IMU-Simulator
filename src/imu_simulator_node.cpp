@@ -32,8 +32,10 @@ ImuSimulatorNode::ImuSimulatorNode(std::shared_ptr<ImuSimulator> pImuSimulator)
       acceleration_timeout_(false),
       calc_acc_from_odom_vel_(false),
       firstLinearVelocityReceived_(false),
-      timeLastOdom_(now()) {
-  RCLCPP_INFO(get_logger(), "Configuring IMU simulator node...");
+      timeLastOdom_(now()),
+      node_namespace_(this->get_namespace()) {
+  RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
+              "Configuring IMU simulator node...");
 
   // Declare adnd retrieve parameters and load them to IMU simulator
   declareAndRetrieveGeneralSettings();
@@ -41,30 +43,31 @@ ImuSimulatorNode::ImuSimulatorNode(std::shared_ptr<ImuSimulator> pImuSimulator)
   declareAndRetrieveEnableSettings();
   declareAndRetrieveEnvironmentalSettings();
 
-  RCLCPP_INFO(get_logger(), "Parameters from YAML config loaded successfully.");
+  RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
+              "Parameters from YAML config loaded successfully.");
 
   // Reset IMU simulator to ensure that constant errors are initialized
   pImuSimulator_->resetImuSimulator();
 
   // Print IMU simulator parameters
   std::stringstream ss = pImuSimulator_->printImuSimulatorParameters();
-  RCLCPP_INFO(get_logger(), "%s", ss.str().c_str());
+  RCLCPP_INFO(rclcpp::get_logger(node_namespace_), "%s", ss.str().c_str());
 
   // Get odometry topic name from launch file or use default
-  std::string groundTruthOdometryTopicName;
+  std::string gt_odom_topic_name_str;
 
   // Get the value of the topic_name parameter
   this->declare_parameter("topic_name_odom", rclcpp::PARAMETER_STRING);
+  this->get_parameter_or("topic_name_odom", gt_odom_topic_name_str,
+                         std::string("/odometry"));
 
-  this->get_parameter_or("topic_name_odom", groundTruthOdometryTopicName,
-                         std::string("/auv/odometry"));
-
-  RCLCPP_INFO(get_logger(), "Subscribing to ground truth odometry topic: %s",
-              groundTruthOdometryTopicName.c_str());
+  RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
+              "Subscribing to ground truth odometry topic: %s",
+              gt_odom_topic_name_str.c_str());
 
   // Initialize the odometry subscriber
   pOdometrySubscriber_ = this->create_subscription<nav_msgs::msg::Odometry>(
-      groundTruthOdometryTopicName, 10,
+      gt_odom_topic_name_str, 10,
       std::bind(&ImuSimulatorNode::odometryCallback, this,
                 std::placeholders::_1));
 
@@ -72,12 +75,12 @@ ImuSimulatorNode::ImuSimulatorNode(std::shared_ptr<ImuSimulator> pImuSimulator)
   if (!calc_acc_from_odom_vel_) {
     // Get acceleration topic name from launch file or use default
     std::string groundTruthAccelTopicName;
-    this->get_parameter_or("topic_name_accel", groundTruthAccelTopicName,
-                           std::string("/auv/accel"));
 
     this->declare_parameter("topic_name_accel", rclcpp::PARAMETER_STRING);
+    this->get_parameter_or("topic_name_accel", groundTruthAccelTopicName,
+                           std::string("/accel"));
 
-    RCLCPP_INFO(get_logger(),
+    RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
                 "Subscribing to ground truth acceleration topic: %s",
                 groundTruthAccelTopicName.c_str());
 
@@ -92,7 +95,7 @@ ImuSimulatorNode::ImuSimulatorNode(std::shared_ptr<ImuSimulator> pImuSimulator)
     groundTruthAccelMsg_ = std::make_shared<geometry_msgs::msg::AccelStamped>();
 
     groundTruthAccelMsg_->header.stamp = now();
-    groundTruthAccelMsg_->header.frame_id = "base_link";
+    groundTruthAccelMsg_->header.frame_id = "base_link_sname";
 
     groundTruthAccelMsg_->accel.linear.x = 0.0;
     groundTruthAccelMsg_->accel.linear.y = 0.0;
@@ -107,37 +110,15 @@ ImuSimulatorNode::ImuSimulatorNode(std::shared_ptr<ImuSimulator> pImuSimulator)
     lastAccelTimestamp_ = now();
 
     RCLCPP_INFO(
-        get_logger(),
+        rclcpp::get_logger(node_namespace_),
         "Ground truth acceleration topic is not used. Acceleration is "
         "calculated by numerical differentiation of odometry velocity.");
   }
 
-  // Retrieve the namespace from the node
-  std::string nsStr = get_namespace();
-
   // Initialize the IMU data publisher
-  pImuPublisher_ =
-      this->create_publisher<sensor_msgs::msg::Imu>(nsStr + "/data", 10);
-
-  // Initialize the IMU visualization publisher
-  pImuAccelStampedPublisher_ =
-      this->create_publisher<geometry_msgs::msg::AccelStamped>(
-          nsStr + "/data_visualization", 10);
-
-  // Initialize the acceleration publisher
-  pTrueAccelerationPublisher_ =
-      this->create_publisher<geometry_msgs::msg::Vector3>(
-          nsStr + "/true_linear_acceleration", 10);
-
-  // Initialize the angular rate publisher
-  pTrueAngularRatePublisher_ =
-      this->create_publisher<geometry_msgs::msg::Vector3>(
-          nsStr + "/true_linear_angular_velocity", 10);
-
-  // Initialize the diagnostic status publisher
-  pDiagnosticPublisher_ =
-      this->create_publisher<diagnostic_msgs::msg::DiagnosticArray>(
-          nsStr + "/diagnostic", 10);
+  pCustomImuPublisher_ = this->create_publisher<
+      nanoauv_sensor_driver_interfaces::msg::InertialMeasurementUnit>(
+      node_namespace_ + "/inertial_data", 10);
 
   // Initialize the tf2 broadcaster
   pStaticTf2Broadcaster_ =
@@ -153,8 +134,8 @@ ImuSimulatorNode::ImuSimulatorNode(std::shared_ptr<ImuSimulator> pImuSimulator)
   // Convert sample time to milliseconds and cast to int
   int sampleTimeInt = static_cast<int>(sampleTime_ * 1e3);
 
-  RCLCPP_INFO(get_logger(), "IMU simulator node executing with %dms.",
-              sampleTimeInt);
+  RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
+              "IMU simulator node executing with %dms.", sampleTimeInt);
 
   // Create a timer to call the IMU simulator loop callback function
   pTimer_ = this->create_wall_timer(
@@ -173,14 +154,15 @@ ImuSimulatorNode::ImuSimulatorNode(std::shared_ptr<ImuSimulator> pImuSimulator)
         std::bind(&ImuSimulatorNode::accelerationTimeOutCallback, this));
   }
 
-  RCLCPP_INFO(get_logger(), "IMU simulator node initialized.");
+  RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
+              "IMU simulator node initialized.");
 
   if (calc_acc_from_odom_vel_) {
-    RCLCPP_INFO(get_logger(),
+    RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
                 "IMU simulator node waiting for first odometry message");
   } else {
     RCLCPP_INFO(
-        get_logger(),
+        rclcpp::get_logger(node_namespace_),
         "IMU simulator node waiting for first odometry and acceleration "
         "message...");
   }
@@ -228,11 +210,13 @@ void ImuSimulatorNode::declareAndRetrieveGeneralSettings() {
     std::random_device rd;
     seed = rd();
     pImuSimulator_->setSimulatorSeed(seed);
-    RCLCPP_INFO(get_logger(), "Using random seed: %d", seed);
+    RCLCPP_INFO(rclcpp::get_logger(node_namespace_), "Using random seed: %d",
+                seed);
   } else {
     // Set the random number generator seed
     pImuSimulator_->setSimulatorSeed(seed);
-    RCLCPP_INFO(get_logger(), "Using seed from config file: %d", seed);
+    RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
+                "Using seed from config file: %d", seed);
   }
 }
 
@@ -649,6 +633,24 @@ void ImuSimulatorNode::imuSimulatorLoopCallback() {
   // Create diagnostic array message
   diagnostic_msgs::msg::DiagnosticArray diagnosticArrayMsg;
 
+  // Create custom IMU message
+  nanoauv_sensor_driver_interfaces::msg::InertialMeasurementUnit customImuMsg;
+
+  // Initialize custom IMU message
+  customImuMsg.header.stamp = currentTimestamp;
+  customImuMsg.header.frame_id = "imu_link";
+
+  customImuMsg.linear_acceleration.x = 0.0;
+  customImuMsg.linear_acceleration.y = 0.0;
+  customImuMsg.linear_acceleration.z = 0.0;
+
+  customImuMsg.angular_velocity.x = 0.0;
+  customImuMsg.angular_velocity.y = 0.0;
+  customImuMsg.angular_velocity.z = 0.0;
+
+  // Set the custom IMU message data validity flag to false
+  customImuMsg.is_valid.data = false;
+
   // Read out odometry message
   Eigen::Vector3d v_nb_b_true;
   Eigen::Vector3d w_ib_b_true;
@@ -666,8 +668,14 @@ void ImuSimulatorNode::imuSimulatorLoopCallback() {
     diagnosticArrayMsg.status.push_back(diagnosticMsg);
     diagnosticArrayMsg.header.stamp = currentTimestamp;
 
-    // Publish the diagnostic array message
-    pDiagnosticPublisher_->publish(diagnosticArrayMsg);
+    // // Publish the diagnostic array message
+    // pDiagnosticPublisher_->publish(diagnosticArrayMsg);
+
+    // Fill the custom IMU message with diagnostic array message
+    customImuMsg.diagnostic_array = diagnosticArrayMsg;
+
+    // Publish the custom IMU message
+    pCustomImuPublisher_->publish(customImuMsg);
 
     // Reset odometry timeout timer since waiting for first message
     pOdometryTimeOutTimer_->cancel();
@@ -695,8 +703,14 @@ void ImuSimulatorNode::imuSimulatorLoopCallback() {
       diagnosticArrayMsg.status.push_back(diagnosticMsg);
       diagnosticArrayMsg.header.stamp = currentTimestamp;
 
-      // Publish the diagnostic array message
-      pDiagnosticPublisher_->publish(diagnosticArrayMsg);
+      //   // Publish the diagnostic array message
+      //   pDiagnosticPublisher_->publish(diagnosticArrayMsg);
+
+      // Fill the custom IMU message with diagnostic array message
+      customImuMsg.diagnostic_array = diagnosticArrayMsg;
+
+      // Publish the custom IMU message
+      pCustomImuPublisher_->publish(customImuMsg);
 
       // Reset odometry timeout timer since waiting for first message
       pOdometryTimeOutTimer_->cancel();
@@ -748,25 +762,25 @@ void ImuSimulatorNode::imuSimulatorLoopCallback() {
         groundTruthOdomMsg_.get()->twist.twist.angular.y,
         groundTruthOdomMsg_.get()->twist.twist.angular.z;
 
-    // Assign true acceleration to true acceleration message
-    geometry_msgs::msg::Vector3 trueAccelerationMsg;
+    // // Assign true acceleration to true acceleration message
+    // geometry_msgs::msg::Vector3 trueAccelerationMsg;
 
-    trueAccelerationMsg.x = a_ib_b_true(0);
-    trueAccelerationMsg.y = a_ib_b_true(1);
-    trueAccelerationMsg.z = a_ib_b_true(2);
+    // trueAccelerationMsg.x = a_ib_b_true(0);
+    // trueAccelerationMsg.y = a_ib_b_true(1);
+    // trueAccelerationMsg.z = a_ib_b_true(2);
 
-    // Assign true angular rate to true angular rate message
-    geometry_msgs::msg::Vector3 trueAngularRateMsg;
+    // // Assign true angular rate to true angular rate message
+    // geometry_msgs::msg::Vector3 trueAngularRateMsg;
 
-    trueAngularRateMsg.x = w_ib_b_true(0);
-    trueAngularRateMsg.y = w_ib_b_true(1);
-    trueAngularRateMsg.z = w_ib_b_true(2);
+    // trueAngularRateMsg.x = w_ib_b_true(0);
+    // trueAngularRateMsg.y = w_ib_b_true(1);
+    // trueAngularRateMsg.z = w_ib_b_true(2);
 
-    // Publish true acceleration message
-    pTrueAccelerationPublisher_->publish(trueAccelerationMsg);
+    // // Publish true acceleration message
+    // pTrueAccelerationPublisher_->publish(trueAccelerationMsg);
 
-    // Publish true angular rate message
-    pTrueAngularRatePublisher_->publish(trueAngularRateMsg);
+    // // Publish true angular rate message
+    // pTrueAngularRatePublisher_->publish(trueAngularRateMsg);
 
     // Assign true orientation to quaternion
     q_ib_true.w() = groundTruthOdomMsg_.get()->pose.pose.orientation.w;
@@ -782,62 +796,73 @@ void ImuSimulatorNode::imuSimulatorLoopCallback() {
     Eigen::Vector3d w_ib_b_meas =
         pImuSimulator_->generateGyroscopeMeasurement(w_ib_b_true, q_ib_true);
 
-    // Fill and fill the IMU message
-    sensor_msgs::msg::Imu imuMsg;
+    // // Fill the IMU message
+    // sensor_msgs::msg::Imu imuMsg;
 
-    imuMsg.header.stamp = currentTimestamp;
-    imuMsg.header.frame_id = "imu_link";
+    // imuMsg.header.stamp = currentTimestamp;
+    // imuMsg.header.frame_id = "imu_link";
 
-    // Fill quaternion and orientation covariance with zeros
-    imuMsg.orientation.w = 1.0;
-    imuMsg.orientation.x = 0.0;
-    imuMsg.orientation.y = 0.0;
-    imuMsg.orientation.z = 0.0;
+    // // Fill quaternion and orientation covariance with zeros
+    // imuMsg.orientation.w = 1.0;
+    // imuMsg.orientation.x = 0.0;
+    // imuMsg.orientation.y = 0.0;
+    // imuMsg.orientation.z = 0.0;
 
-    for (std::size_t i = 0; i < 9; i++) {
-      imuMsg.orientation_covariance[i] = 0.0;
-    }
+    // for (int i = 0; i < 9; i++) {
+    //   imuMsg.orientation_covariance.at(i) = 0.0;
+    // }
 
-    // Fill acceleration with simulated data
-    imuMsg.linear_acceleration.x = f_ib_b_meas(0);
-    imuMsg.linear_acceleration.y = f_ib_b_meas(1);
-    imuMsg.linear_acceleration.z = f_ib_b_meas(2);
+    // // Fill acceleration with simulated data
+    // imuMsg.linear_acceleration.x = f_ib_b_meas(0);
+    // imuMsg.linear_acceleration.y = f_ib_b_meas(1);
+    // imuMsg.linear_acceleration.z = f_ib_b_meas(2);
 
-    // Fill acceleration covariance with zeros
-    for (std::size_t i = 0; i < 9; i++) {
-      imuMsg.linear_acceleration_covariance[i] = 0.0;
-    }
+    // // Fill acceleration covariance with zeros
+    // for (int i = 0; i < 9; i++) {
+    //   imuMsg.linear_acceleration_covariance.at(i) = 0.0;
+    // }
 
-    // Fill angular velocity with simulated data
-    imuMsg.angular_velocity.x = w_ib_b_meas(0);
-    imuMsg.angular_velocity.y = w_ib_b_meas(1);
-    imuMsg.angular_velocity.z = w_ib_b_meas(2);
+    // // Fill angular velocity with simulated data
+    // imuMsg.angular_velocity.x = w_ib_b_meas(0);
+    // imuMsg.angular_velocity.y = w_ib_b_meas(1);
+    // imuMsg.angular_velocity.z = w_ib_b_meas(2);
 
-    // Fill angular velocity covariance with zeros
-    for (std::size_t i = 0; i < 9; i++) {
-      imuMsg.angular_velocity_covariance[i] = 0.0;
-    }
+    // // Fill angular velocity covariance with zeros
+    // for (int i = 0; i < 9; i++) {
+    //   imuMsg.angular_velocity_covariance.at(i) = 0.0;
+    // }
 
-    // Publish the IMU message
-    pImuPublisher_->publish(imuMsg);
+    // // Publish the IMU message
+    // pImuPublisher_->publish(imuMsg);
 
-    // Define and fill the IMU visualization message
-    geometry_msgs::msg::AccelStamped accelStampedMsg;
+    // Fill the custom IMU message with simulated data
+    customImuMsg.linear_acceleration.x = f_ib_b_meas(0);
+    customImuMsg.linear_acceleration.y = f_ib_b_meas(1);
+    customImuMsg.linear_acceleration.z = f_ib_b_meas(2);
 
-    accelStampedMsg.header.stamp = currentTimestamp;
-    accelStampedMsg.header.frame_id = "imu_link";
+    customImuMsg.angular_velocity.x = w_ib_b_meas(0);
+    customImuMsg.angular_velocity.y = w_ib_b_meas(1);
+    customImuMsg.angular_velocity.z = w_ib_b_meas(2);
 
-    // Fill acceleration with simulated data
-    accelStampedMsg.accel.linear.x = f_ib_b_meas(0);
-    accelStampedMsg.accel.linear.y = f_ib_b_meas(1);
-    accelStampedMsg.accel.linear.z = f_ib_b_meas(2);
+    customImuMsg.is_valid.data = true;
 
-    accelStampedMsg.accel.angular.x = w_ib_b_meas(0);
-    accelStampedMsg.accel.angular.y = w_ib_b_meas(1);
-    accelStampedMsg.accel.angular.z = w_ib_b_meas(2);
+    // // Define and fill the IMU visualization message
+    // geometry_msgs::msg::AccelStamped accelStampedMsg;
 
-    // Publish the visualization message
-    pImuAccelStampedPublisher_->publish(accelStampedMsg);
+    // accelStampedMsg.header.stamp = currentTimestamp;
+    // accelStampedMsg.header.frame_id = "imu_link";
+
+    // // Fill acceleration with simulated data
+    // accelStampedMsg.accel.linear.x = f_ib_b_meas(0);
+    // accelStampedMsg.accel.linear.y = f_ib_b_meas(1);
+    // accelStampedMsg.accel.linear.z = f_ib_b_meas(2);
+
+    // accelStampedMsg.accel.angular.x = w_ib_b_meas(0);
+    // accelStampedMsg.accel.angular.y = w_ib_b_meas(1);
+    // accelStampedMsg.accel.angular.z = w_ib_b_meas(2);
+
+    // // Publish the visualization message
+    // pImuAccelStampedPublisher_->publish(accelStampedMsg);
 
     // Fill the diagnostic message
     diagnosticMsg.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
@@ -883,8 +908,14 @@ void ImuSimulatorNode::imuSimulatorLoopCallback() {
   diagnosticArrayMsg.status.push_back(diagnosticMsg);
   diagnosticArrayMsg.header.stamp = currentTimestamp;
 
-  // Publish the diagnostic message
-  pDiagnosticPublisher_->publish(diagnosticArrayMsg);
+  //   // Publish the diagnostic message
+  //   pDiagnosticPublisher_->publish(diagnosticArrayMsg);
+
+  // Fill the custom IMU message with diagnostic array message
+  customImuMsg.diagnostic_array = diagnosticArrayMsg;
+
+  // Publish the custom IMU message
+  pCustomImuPublisher_->publish(customImuMsg);
 }
 
 /**
@@ -906,13 +937,15 @@ void ImuSimulatorNode::odometryCallback(
   if (!first_odometry_received_) {
     first_odometry_received_ = true;
 
-    RCLCPP_INFO(get_logger(), "First ground truth odometry message received!");
+    RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
+                "First ground truth odometry message received!");
 
     // Check if first acceleration has been received
     if (first_acceleration_received_) {
-      RCLCPP_INFO(get_logger(), "IMU simulator now running nominal!");
+      RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
+                  "IMU simulator now running nominal!");
     } else {
-      RCLCPP_INFO(get_logger(),
+      RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
                   "Waiting for first ground truth acceleration message...");
     }
   }
@@ -922,11 +955,11 @@ void ImuSimulatorNode::odometryCallback(
     odometry_timeout_ = false;
 
     if (acceleration_timeout_ && !calc_acc_from_odom_vel_) {
-      RCLCPP_INFO(get_logger(),
+      RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
                   "Ground truth odometry message received after timeout! Still "
                   "waiting for ground truth acceleration message...");
     } else {
-      RCLCPP_INFO(get_logger(),
+      RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
                   "Ground truth odometry message received after timeout! IMU "
                   "simulator now running nominal!");
     }
@@ -957,14 +990,15 @@ void ImuSimulatorNode::accelerationCallback(
   // Set first acceleration received flag
   if (!first_acceleration_received_) {
     first_acceleration_received_ = true;
-    RCLCPP_INFO(get_logger(),
+    RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
                 "First ground truth acceleration message received!");
 
     // Check if first odometry velocity has been received
     if (first_odometry_received_) {
-      RCLCPP_INFO(get_logger(), "IMU simulator now running nominal!");
+      RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
+                  "IMU simulator now running nominal!");
     } else {
-      RCLCPP_INFO(get_logger(),
+      RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
                   "Waiting for first ground truth odometry message...");
     }
   }
@@ -974,12 +1008,12 @@ void ImuSimulatorNode::accelerationCallback(
     acceleration_timeout_ = false;
 
     if (odometry_timeout_) {
-      RCLCPP_INFO(get_logger(),
+      RCLCPP_INFO(rclcpp::get_logger(node_namespace_),
                   "Ground truth acceleration message received after timeout! "
                   "Still waiting for ground truth odometry message...");
     } else {
       RCLCPP_INFO(
-          get_logger(),
+          rclcpp::get_logger(node_namespace_),
           "Ground truth acceleration message received after timeout! IMU "
           "simulator now running nominal!");
     }
@@ -1002,7 +1036,7 @@ void ImuSimulatorNode::odometryTimeOutCallback() {
   // Set odometry timeout flag
   odometry_timeout_ = true;
 
-  RCLCPP_WARN(get_logger(),
+  RCLCPP_WARN(rclcpp::get_logger(node_namespace_),
               "No ground truth odometry message since more than 5 "
               "seconds! IMU simulator now starting to stale!");
 }
@@ -1017,7 +1051,7 @@ void ImuSimulatorNode::accelerationTimeOutCallback() {
   // Set acceleration timeout flag
   acceleration_timeout_ = true;
 
-  RCLCPP_WARN(get_logger(),
+  RCLCPP_WARN(rclcpp::get_logger(node_namespace_),
               "No ground truth acceleration message since more than 5 "
               "seconds! IMU simulator now starting to stale!");
 }
@@ -1030,7 +1064,7 @@ void ImuSimulatorNode::publishTf2Transforms() const {
   geometry_msgs::msg::TransformStamped tfMsg;
   tfMsg.header.stamp = now();
 
-  tfMsg.header.frame_id = "base_link";
+  tfMsg.header.frame_id = "base_link_sname";
   tfMsg.child_frame_id = "imu_link";
 
   tfMsg.transform.translation.x = 0.0;

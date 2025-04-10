@@ -12,7 +12,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -O2)
 endif()
 
 # find dependencies
@@ -24,6 +24,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
+
+find_package(nanoauv_sensor_driver_interfaces REQUIRED)
 
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -51,7 +53,8 @@ ament_target_dependencies(${PROJECT_NAME}_node PUBLIC
         geometry_msgs
         diagnostic_msgs
         tf2_ros
-        Eigen3)
+        Eigen3
+        nanoauv_sensor_driver_interfaces)
 
 target_link_libraries(${PROJECT_NAME}_node PUBLIC imu_simulator)
 
@@ -99,7 +102,8 @@ ament_target_dependencies(ground_truth_test_publisher_node PUBLIC
         nav_msgs
         geometry_msgs
         tf2_ros
-        Eigen3)
+        Eigen3
+        nanoauv_sensor_driver_interfaces)
 
 target_link_libraries(ground_truth_test_publisher_node PUBLIC imu_simulator)
 
@@ -148,7 +152,7 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
 
   list(APPEND AMENT_LINT_AUTO_EXCLUDE
-    ament_cmake_uncrustify ament_cmake_lint_cmake)
+    ament_cmake_uncrustify)
 
   # enforce linters and static code analyzers defined in ament_lint_common package
   ament_lint_auto_find_test_dependencies()
