@@ -48,7 +48,7 @@ def generate_launch_description():
     # Create the node
     imu_simulator_package_node = Node(
         package="imu_simulator_package",
-        namespace="/nanoauv/sensor/imu",
+        namespace="/auv/sensor/imu",
         executable="imu_simulator_package_node",
         name="imu_simulator_node",
         output="screen",
