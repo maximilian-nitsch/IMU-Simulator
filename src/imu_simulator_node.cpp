@@ -57,7 +57,7 @@ ImuSimulatorNode::ImuSimulatorNode(std::shared_ptr<ImuSimulator> pImuSimulator)
   this->declare_parameter("topic_name_odom", rclcpp::PARAMETER_STRING);
 
   this->get_parameter_or("topic_name_odom", groundTruthOdometryTopicName,
-                         std::string("/nanoauv/odometry"));
+                         std::string("/auv/odometry"));
 
   RCLCPP_INFO(get_logger(), "Subscribing to ground truth odometry topic: %s",
               groundTruthOdometryTopicName.c_str());
@@ -73,7 +73,7 @@ ImuSimulatorNode::ImuSimulatorNode(std::shared_ptr<ImuSimulator> pImuSimulator)
     // Get acceleration topic name from launch file or use default
     std::string groundTruthAccelTopicName;
     this->get_parameter_or("topic_name_accel", groundTruthAccelTopicName,
-                           std::string("/nanoauv/accel"));
+                           std::string("/auv/accel"));
 
     this->declare_parameter("topic_name_accel", rclcpp::PARAMETER_STRING);
 
