@@ -31,13 +31,13 @@ def generate_launch_description():
 
     topic_name_odom_arg = DeclareLaunchArgument(
         "topic_name_odom",
-        default_value="/nanoauv/odometry",
+        default_value="/auv/odometry",
         description="Topic name of the ground truth odometry from vehicle",
     )
 
     topic_name_accel_arg = DeclareLaunchArgument(
         "topic_name_accel",
-        default_value="/nanoauv/accel",
+        default_value="/auv/accel",
         description="Topic name of the ground truth acceleration from vehicle",
     )
 
