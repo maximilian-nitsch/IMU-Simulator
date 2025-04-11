@@ -1,6 +1,11 @@
 # IRT C++/ROS 2 IMU-Simulator
-
+![Build](https://github.com/maximilian-nitsch/IMU-Simulator/actions/workflows/ci.yaml/badge.svg)<!-- -->
 [![License](https://img.shields.io/badge/license-BSD--3-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![Last Commit](https://img.shields.io/github/last-commit/maximilian-nitsch/IMU-Simulator)](https://github.com/maximilian-nitsch/IMU-Simulator/commits/main)<!-- -->
+[![ROS2 Humble](https://img.shields.io/badge/ROS2-Humble-blue)](https://index.ros.org/doc/ros2/Installation/Humble/)<!-- -->
+[![Release](https://img.shields.io/github/v/release/maximilian-nitsch/IMU-Simulator)](https://github.com/maximilian-nitsch/IMU-Simulator/releases)<!-- -->
+[![Open Issues](https://img.shields.io/github/issues/maximilian-nitsch/IMU-Simulator)](https://github.com/maximilian-nitsch/IMU-Simulator/issues)<!-- -->
+[![Contributors](https://img.shields.io/github/contributors/maximilian-nitsch/IMU-Simulator)](https://github.com/maximilian-nitsch/IMU-Simulator/graphs/contributors)
 
 <img src="./data/icon.png" alt="Icon" width="50%">
 
