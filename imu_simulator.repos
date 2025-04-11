@@ -1,0 +1,5 @@
+repositories:
+  nanoauv_sensor_driver_interfaces:
+    type: git
+    url: https://github.com/maximilian-nitsch/Navigation-Interfaces
+    version: main
