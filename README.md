@@ -11,7 +11,7 @@
 
 <!--- protected region package header begins -->
 **Author:**
-- Maximilian Nitsch <m.nitsch@irt.rwth-aachen.de> (Institute of Automatic Control - RWTH Aachen University)
+- Maximilian Nitsch <maximilian.nitsch@rwth-aachen.de> (Institute of Automatic Control - RWTH Aachen University)
 
 **Maintainer:**
   - Maximilian Nitsch <m.nitsch@irt.rwth-aachen.de> (Institute of Automatic Control - RWTH Aachen University)
