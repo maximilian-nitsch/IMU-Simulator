@@ -134,6 +134,9 @@ if(BUILD_TESTING)
 
   find_package(ament_cmake_gtest REQUIRED)
 
+  find_package(launch_testing_ament_cmake REQUIRED)
+  add_launch_test(test/test_imu_launch.py TIMEOUT 45)
+
   set(TEST_FILES
       test/main.cpp
       test/imu_simulator_test.cpp)
@@ -155,6 +158,7 @@ if(BUILD_TESTING)
     ament_cmake_uncrustify)
 
   # enforce linters and static code analyzers defined in ament_lint_common package
+  set(ament_cmake_cppcheck_LANGUAGE c++)
   ament_lint_auto_find_test_dependencies()
 
   # uncomment to include uncrustify explicitly

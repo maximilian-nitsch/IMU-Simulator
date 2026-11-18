@@ -5,13 +5,12 @@
 
 import os
 
-import yaml
 from ament_index_python import get_package_share_directory
-from launch_ros.actions import Node
-
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+import yaml
 
 
 def generate_launch_description():
@@ -20,25 +19,25 @@ def generate_launch_description():
 
     # Declare the path to the config YAML file
     config_file_path = os.path.join(
-        get_package_share_directory("imu_simulator_package"),  # noqa
-        "config",  # noqa
-        "stim300.yaml",  # noqa
+        get_package_share_directory('imu_simulator_package'),  # noqa
+        'config',  # noqa
+        'stim300.yaml',  # noqa
     )
 
     # Open the YAML file and load the parameters
-    with open(config_file_path, "r") as file:
+    with open(config_file_path, 'r') as file:
         config = yaml.safe_load(file)
 
     topic_name_odom_arg = DeclareLaunchArgument(
-        "topic_name_odom",
-        default_value="/auv/odometry",
-        description="Topic name of the ground truth odometry from vehicle",
+        'topic_name_odom',
+        default_value='/auv/odometry',
+        description='Topic name of the ground truth odometry from vehicle',
     )
 
     topic_name_accel_arg = DeclareLaunchArgument(
-        "topic_name_accel",
-        default_value="/auv/accel",
-        description="Topic name of the ground truth acceleration from vehicle",
+        'topic_name_accel',
+        default_value='/auv/accel',
+        description='Topic name of the ground truth acceleration from vehicle',
     )
 
     # Add the launch argument to the launch description
@@ -47,15 +46,15 @@ def generate_launch_description():
 
     # Create the node
     imu_simulator_package_node = Node(
-        package="imu_simulator_package",
-        namespace="/auv/gnc/navigation_sensors/imu",
-        executable="imu_simulator_package_node",
-        name="imu_simulator_node",
-        output="screen",
+        package='imu_simulator_package',
+        namespace='/auv/gnc/navigation_sensors/imu',
+        executable='imu_simulator_package_node',
+        name='imu_simulator_node',
+        output='screen',
         parameters=[
             config,
-            {"topic_name_odom": LaunchConfiguration("topic_name_odom")},
-            {"topic_name_accel": LaunchConfiguration("topic_name_accel")}
+            {'topic_name_odom': LaunchConfiguration('topic_name_odom')},
+            {'topic_name_accel': LaunchConfiguration('topic_name_accel')}
         ]
     )
 

@@ -10,17 +10,24 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-22.04
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-jammy-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup ROS 2
-        uses: ros-tooling/setup-ros@v0.7
-        with:
-          required-ros-distributions: humble
+      - name: Check C++ formatting
+        shell: bash
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends clang-format-14
+          git -c safe.directory="$PWD" ls-files -z '*.h' '*.hpp' '*.cpp' |
+            xargs -0 -r clang-format-14 --dry-run --Werror
 
       - name: Build and Test
+        env:
+          AMENT_CPPCHECK_ALLOW_SLOW_VERSIONS: '1'
         uses: ros-tooling/action-ros-ci@v0.4
         with:
           package-name: imu_simulator_package
