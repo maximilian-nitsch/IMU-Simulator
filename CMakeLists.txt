@@ -134,6 +134,9 @@ if(BUILD_TESTING)
 
   find_package(ament_cmake_gtest REQUIRED)
 
+  find_package(launch_testing_ament_cmake REQUIRED)
+  add_launch_test(test/test_imu_launch.py TIMEOUT 45)
+
   set(TEST_FILES
       test/main.cpp
       test/imu_simulator_test.cpp)
